@@ -5,17 +5,22 @@ from datetime import datetime
 timeframe='2015-01'
 sql_transaction=[]
 start_row=0
-
-
 connection=sqlite3.connect('{}.db'.format(timeframe))
 c=connection.cursor()
 
 #create sqlite table
 def create_table():
-    c.execute("""CREATE TABLE IF NOT EXISTS parent_reply (parent_id TEXT PRIMARY KEY,link_id TEXT UNIQUE,parent TEXT,comment TEXT,subreddit TEXT,unix INT,score INT)""")
+    c.execute("""CREATE TABLE IF NOT EXISTS parent_reply (parent_id TEXT PRIMARY KEY,
+                                                            link_id TEXT UNIQUE,
+                                                            parent TEXT,
+                                                            comment TEXT,
+                                                            subreddit TEXT,
+                                                            unix INT,score INT)""")
+
 def format_data(data):
     data = data.replace("\n", "newlinechar").replace("\r", "newlinechar").replace('"','"')
     return data
+
 def transaction_bldr(sql):
     global sql_transaction
     sql_transaction.append(sql)
@@ -40,6 +45,7 @@ def find_existing_score(pid):
     except Exception as e :
        # print("find_parent",e)
         return False
+
 def acceptable(data):
     if len(data.split(' ')) > 50 or len(data)<1:
         return False
@@ -63,30 +69,40 @@ def find_parent(pid):
     except Exception as e :
        # print("find_parent",e)
         return False
+    
 def sql_insert_replace_comment(linkid,parentid,parent,comment,subreddit,time,score):
     try:
-         sql = """UPDATE parent_reply SET parent_id = {}, link_id = {}, parent = {}, comment = {}, subreddit = {}, unix = {}, score = {} WHERE parent_id ={};""".format(parentid, linkid, parent, comment, subreddit, int(time), score, parentid)
+         sql = """UPDATE parent_reply SET 
+                    parent_id = {}, 
+                    link_id = {}, 
+                    parent = {}, 
+                    comment = {}, 
+                    subreddit = {}, 
+                    unix = {}, 
+                    score = {} 
+                    WHERE parent_id ={};""".format(parentid, linkid, parent, 
+                                                   comment, subreddit, int(time), score, parentid)
          transaction_bldr(sql)
     except Exception as e :
         print ('s-UPDATE  insertion',str(e))
 
 def sql_insert_has_parent(commentid,parentid,parent,comment,subreddit,time,score):
     try:
-        sql = """INSERT INTO parent_reply (parent_id, link_id, parent, comment, subreddit, unix, score) VALUES ("{}","{}","{}","{}","{}",{},{});""".format(parentid, commentid, parent, comment, subreddit, int(time), score)
+        sql = """INSERT INTO parent_reply (parent_id, link_id, parent, comment, subreddit, unix, score) 
+                    VALUES ("{}","{}","{}","{}","{}",{},{});""".format(parentid, commentid, parent, 
+                                                                       comment, subreddit, int(time), score)
         transaction_bldr(sql)
     except Exception as e :
         print ('s-PARENT  insertion',str(e))
+        
 def sql_insert_no_parent(commentid,parentid,comment,subreddit,time,score):
     try:
-        sql= """INSERT INTO  parent_reply (parent_id,link_id,subreddit,unix,score) VALUES ("{}","{}","{}","{}",{},{});""".format(parentid,linkid,comment,subreddit,int(time),score)
+        sql= """INSERT INTO  parent_reply (parent_id,link_id,subreddit,unix,score) 
+                    VALUES ("{}","{}","{}","{}",{},{});""".format(parentid,linkid,comment,
+                                                                  subreddit,int(time),score)
         transaction_bldr(sql)
     except Exception as e :
         print ('s-NO_PARENT  insertion',str(e))
-
-
-
-
-
 
 if __name__== "__main__":
     create_table()
@@ -111,12 +127,14 @@ if __name__== "__main__":
                     if existing_comment_score:
                         if score > existing_comment_score:
                             if acceptable(body):
-                                sql_insert_replace_comment(link_id, parent_id, parent_data, body, subreddit, created_utc, score)
+                                sql_insert_replace_comment(link_id, parent_id, parent_data, 
+                                                           body, subreddit, created_utc, score)
                     else:
                         if acceptable(body):
                             if parent_data:
                                 if score > 2:
-                                    sql_insert_has_parent(link_id, parent_id, parent_data, body, subreddit, created_utc, score)
+                                    sql_insert_has_parent(link_id, parent_id, parent_data, 
+                                                          body, subreddit, created_utc, score)
                                     paired_rows += 1
                             else:
                                 sql_insert_no_parent(link_id, parent_id, body, subreddit, created_utc, score)
@@ -124,22 +142,3 @@ if __name__== "__main__":
                     print(str(e))
             if row_counter % 100000 == 0:
                 print('Total Rows Read:{},Paired Rows:{},Time:{}'.format(row_counter,paired_rows,str(datetime.now())) )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
